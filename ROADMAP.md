@@ -1,6 +1,6 @@
 # ROADMAP: Airlock
 
-Last updated: 2026-11-19 20:05 UTC
+Last updated: 2026-11-20 16:17 UTC
 
 Roadmap version: 1
 
@@ -40,11 +40,11 @@ The repository is 100% ready when every task in Phases 0 to 8 is done and every 
 | 3 | P0 detectors | 4 | 11 | 36% |
 | 4 | Action and dogfood | 0 | 7 | 0% |
 | 5 | Release v0.1.0 | 1 | 7 | 14% |
-| 6 | Stellar detectors | 0 | 5 | 0% |
+| 6 | Stellar detectors | 1 | 5 | 20% |
 | 7 | Hardening and edge cases | 4 | 13 | 31% |
 | 8 | Release v0.2.0 and community | 2 | 6 | 33% |
-| 9 (backlog) | Backlog | 15 | 28 | 54% |
-| **Phases 0 to 8** | **Readiness total** | **46** | **95** | **48%** |
+| 9 (backlog) | Backlog | 19 | 32 | 59% |
+| **Phases 0 to 8** | **Readiness total** | **47** | **95** | **49%** |
 | Gates | G1 to G10 | 0 | 10 | 0% |
 <!-- PROGRESS:END -->
 
@@ -242,7 +242,7 @@ families.
 ### Phase 6: Stellar detectors (v0.2)
 
 - [ ] **6.1** `soroban_profile`: contract-crate detection, workspace-root profile check, `testutils` placement, `profile-ignored`. L. Deps: 0.12, 0.14, 3.10. Done when: no false positive on a test-support library crate.
-- [ ] **6.2** `strkey.py` for D-06's retained seed scope: canonical uppercase unpadded Base32, exactly 56 characters / 35 bytes, version `0x90` plus 32 seed bytes and a 2-byte little-endian CRC16-XMODEM over the first 33 bytes. M. Deps: 0.7. Done when: reference-derived valid vectors and invalid checksum, version, length and encoding cases pass against `ARCHITECTURE.md` 9.4's pinned sources. Construct vectors at test time from reference bytes or fragments; never commit complete live-looking seeds. Not implemented by 0.7.
+- [x] **6.2** `strkey.py` for D-06's retained seed scope: canonical uppercase unpadded Base32, exactly 56 characters / 35 bytes, version `0x90` plus 32 seed bytes and a 2-byte little-endian CRC16-XMODEM over the first 33 bytes. M. Deps: 0.7. Done when: reference-derived valid vectors and invalid checksum, version, length and encoding cases pass against `ARCHITECTURE.md` 9.4's pinned sources. Construct vectors at test time from reference bytes or fragments; never commit complete live-looking seeds. Not implemented by 0.7.
 - [ ] **6.3** `stellar_seed` detector, D-06 KEEP: offline checksum-valid plaintext seeds in tracked files, including tests and docs, within collector limits and `line_cap`. No assignment-context or entropy prerequisite. M. Deps: 6.2. Done when: positive and negative fixtures, candidate-boundary cases and trusted-base occurrence-aware suppressions pass; checksum-invalid strings do not fire and valid test vectors do unless explicitly suppressed with a reason. No testnet, funding or live-use inference or network verification; document split/encoded strings, mnemonics, word-character adjacency and history gaps. Not implemented by 0.7.
 - [ ] **6.4** `cargo_vectors`. M. Deps: 3.10. Done when: fixtures pass.
 - [ ] **6.5** Fixtures and dogfood for Phase 6 detectors on the Rust repos. M. Deps: 6.1, 6.3, 6.4. Done when: zero HIGH false positives.
@@ -303,6 +303,10 @@ families.
 - [x] **9.26** Reconcile `cfg-long-line` severity documentation in README with engine behavior (HIGH in build configs, WARN elsewhere) (#28).
 - [x] **9.27** Drop phantom `cfg-nul` from detector tables in `ARCHITECTURE_ESSENTIALS.md` and `PRD.md`, noting `nul-in-text` state finding (#56).
 - [x] **9.28** Reconcile test counts in `README.md` metrics and prose with `sync_readme.py` and badge data (#97).
+- [x] **9.29** Make `FileEntry`'s three states mutually exclusive in `__post_init__`: text requires a digest, a skip reason forbids text and a digest, and an entry with none of the three is rejected, with a state-matrix test (#21).
+- [x] **9.30** Validate the PE structure before assigning `native-binary` to an `MZ` file, and emit a non-suppressible INFO `content-magic-role` naming the role and path when content magic applies (#25).
+- [x] **9.31** Cover the `strkey` seed decoder with vectors built at test time, including checksum, version, length and alphabet rejections (#26).
+- [x] **9.32** Hold the engine boundary with an AST test: `runner.py`, `model.py`, `fingerprint.py` and `roles.py` make no open, eval, exec, compile or subprocess call, and only `collector.py` imports `subprocess` (#27).
 
 ## 6. Dependency map (critical path)
 
@@ -347,6 +351,7 @@ Newest first. One row per merged change.
 
 | Date (UTC) | Change | Tasks |
 |---|---|---|
+| 2026-11-20 16:17 | Close #21, #25, #26 and #27. `FileEntry` now rejects a skipped entry carrying text or a digest, text without a digest and an entry with none of the three, with `tests/unit/test_model_fileentry_invariants.py` covering the matrix; the collector's encoding skip and the stale-manifest detector's synthetic path were the two sites that had to conform, and no check was loosened. `MZ` no longer decides a file is native on two bytes: the DOS header's `e_lfanew` must point at a `PE\0\0` signature inside the bytes read, otherwise the file falls through and is scanned as text, and every magic role now emits INFO `content-magic-role`, covered by `tests/unit/test_roles_magic_bypass.py`. `tests/unit/test_strkey.py` covers the already-shipped decoder with test-time vectors, and `tests/unit/test_engine_boundaries.py` parses the four engine modules to reject open, eval, exec, compile and subprocess calls, with doctored-source self-tests. | 9.29, 9.30, 9.31, 9.32, 6.2 |
 | 2026-11-19 20:05 | Close #28, #56 and #97. Document `cfg-long-line` dual severity in `README.md` (HIGH in build configs, WARN elsewhere) with `tests/unit/test_long_line_severity_docs.py`. Drop phantom rule id `cfg-nul` from `ARCHITECTURE_ESSENTIALS.md` and `PRD.md`, noting `nul-in-text` as the collector's state finding, with `tests/unit/test_rule_doc_ids.py` asserting table agreement with loaded `cfg-*` rule data. Update `scripts/sync_readme.py` to parse collected and skipped tests without magic thresholds, sync `README.md` prose test count with the metrics block, and verify three-way agreement in `tests/unit/test_readme_counts.py`. | 9.26, 9.27, 9.28 |
 | 2026-11-19 18:55 | Close #47, #48, #50 and #54. `strkey.py` decodes a candidate only when it is 56 canonical uppercase Base32 characters that re-encode to themselves, 35 bytes, version `0x90` and a matching little-endian CRC16-XMODEM over the first 33 bytes, and the new `stellar_seed` detector reports each valid candidate on a line at or under `line_cap` as the suppressible HIGH `stellar-seed` rule with both fixture halves; the checksum says nothing about funding or live use. Two engine tests close the trust-model gaps: `test_state_rule_ids.py` derives every `_state` producer from `collector.py` and `policy.py` with `ast`, resolves module-level constants, adds `detector-error` and `cfg-long-line`, and asserts set equality with a self-test that names a removed id and its file, while `test_policy_trusted_source_only.py` traps `policy._working_text` and proves `pr` and `push` never reach it, with `full` mode as the control that makes the trap bite. `cfg-network` no longer treats every `https://` literal as a capability: the trailing branch now requires a call argument or a network-named key, so a documentation URL in a comment is quiet while `fetch(`, `require("https")`, `axios` and `.request(` are unchanged, and `PRD.md` row 174 moves with the pattern. | 9.18, 9.19, 9.20, 9.21, 6.2, 6.3 |
 | 2026-11-19 18:25 | Merge pull request #111: Bounded install-hook pairing in `ci_surface.py`, npm lockfile registry host checks, manifest matching for LFS oids, and Cargo dependency-source findings. Add focused fixtures and tests. | 9.14, 9.15, 9.16, 9.17, FR-18, FR-20, FR-30, FR-31, ADR-020, ADR-021, D-10, D-11 |
